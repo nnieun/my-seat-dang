@@ -30,10 +30,20 @@ spring:
 #    prefix: classpath:/templates/
 #    suffix: .html
 
+# NCP
+#  s3:
+#    accessKey: ${SPRING_S3_ACCESSKEY}
+#    secretKey: ${SPRING_S3_SECRETKEY}
+#    bucket: myseatdang-bucket2
+
+# AWS용
   s3:
-    accessKey: ${SPRING_S3_ACCESSKEY}
-    secretKey: ${SPRING_S3_SECRETKEY}
-    bucket: myseatdang-bucket
+    accessKey: ${AWS_ACCESS_KEY_ID}  # AWS IAM 사용자의 Access Key ID
+    secretKey: ${AWS_SECRET_ACCESS_KEY}  # AWS IAM 사용자의 Secret Key
+    bucket: myseatdang-bucket2  # AWS S3 버킷 이름
+    region: ap-northeast-2  # 서울 리전
+
+
 
 #OAUTH - NAVER
   security:
@@ -64,11 +74,14 @@ logging:
 app:
   version: 0.1.1
 
-file:
-  upload-dir: /path/to/upload/directory
+#file:
+#  upload-dir: /path/to/upload/directory
 
-ncp:
-  api:
-    accessId: ${NCP_APIGW_ACCESS_ID}
-    secretKey: ${NCP_APIGW_SECRET_KEY}
+file:
+  upload-dir: ""
+
+#ncp:
+#  api:
+#    accessId: ${NCP_APIGW_ACCESS_ID}
+#    secretKey: ${NCP_APIGW_SECRET_KEY}
 

@@ -49,7 +49,10 @@ dependencies {
 
 
     // object-storage
-    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+//    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+
+    // s3 업로드
+    implementation 'software.amazon.awssdk:s3:2.20.0'
 
     // mongo
     runtimeOnly 'org.mongodb:mongodb-driver-sync'
