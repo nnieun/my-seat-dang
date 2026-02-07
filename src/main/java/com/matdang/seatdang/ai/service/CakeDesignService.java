@@ -3,15 +3,20 @@ package com.matdang.seatdang.ai.service;
 
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.matdang.seatdang.ai.dto.GeneratedImageResponseDto;
 import com.matdang.seatdang.ai.dto.GeneratedImageUrlDto;
 import com.matdang.seatdang.ai.entity.GeneratedImageUrl;
+import com.matdang.seatdang.common.exception.ImageLimitExceededException;
 import com.matdang.seatdang.ai.repository.GeneratedImageUrlRepository;
+import com.matdang.seatdang.member.entity.Customer;
+import com.matdang.seatdang.member.service.CustomerService;
 import com.matdang.seatdang.object_storage.service.FileService;
 import com.theokanning.openai.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -32,9 +37,36 @@ public class CakeDesignService {
     private final OpenAiService openAiService;
     private final GeneratedImageUrlRepository generatedImageUrlRepository;
     private final FileService fileService;
+    private final CustomerService customerService;
 
     @Value("${openai.api.key}")
     private String openaiApiKey;
+    @Transactional
+    public GeneratedImageResponseDto generateCakeImage(
+            Long customerId,
+            String cakeDescription
+    ) throws IOException, InterruptedException {
+        Customer customer = customerService.findById(customerId);
+        if (customer.getImageGenLeft() <= 0) {
+            throw new ImageLimitExceededException();
+        }
+
+        // AI 이미지 생성 및 생성된 이미지 NCP에 저장
+        GeneratedImageUrl generatedImage =
+                createAndSaveGeneratedImage(customerId, cakeDescription);
+
+        // 이미지 생성 횟수 차감
+        customerService.decrementImageGenLeft(customer);
+
+        // 응답 데이터 반환
+        return new GeneratedImageResponseDto(
+                generatedImage.getGeneratedUrl(),
+                generatedImage.getInputText(),
+                generatedImage.getCreatedAt()
+        );
+    }
+
+
 
 
     /**
@@ -70,6 +102,7 @@ public class CakeDesignService {
 
         // 응답 본문에서 URL 추출
         String responseBody = response.body();
+        log.error("OpenAI raw response = {}", responseBody);
         int startIndex = responseBody.indexOf("https://"); // URL이 "https://"로 시작함
         int endIndex = responseBody.indexOf("\"", startIndex); // URL이 큰 따옴표로 끝남
         String imageUrl = responseBody.substring(startIndex, endIndex);
@@ -108,25 +141,25 @@ public class CakeDesignService {
 
 
     public GeneratedImageUrl createAndSaveGeneratedImage(Long customerId, String cakeDescription) throws IOException, InterruptedException {
-        // AI 이미지 생성
-        String imageUrl = generatePictureV2(cakeDescription);
+            // AI 이미지 생성
+            String imageUrl = generatePictureV2(cakeDescription);
 
-        // S3 또는 NCP에 업로드
-        String filePath = "ai-generated-images/" + customerId + "/cake-idea.jpg";
-        String uploadedImageUrl = uploadImageToS3(imageUrl, filePath);
+            // S3 또는 NCP에 업로드
+            String filePath = "ai-generated-images/" + customerId + "/cake-idea.jpg";
+            String uploadedImageUrl = uploadImageToS3(imageUrl, filePath);
 
-        // 이미지 URL 및 생성된 데이터 저장
-        GeneratedImageUrl generatedImage = GeneratedImageUrl.builder()
-                .customerId(customerId)
-                .generatedUrl(uploadedImageUrl)
-                .createdAt(LocalDateTime.now())
-                .inputText(cakeDescription)
-                .build();
+            // 이미지 URL 및 생성된 데이터 저장
+            GeneratedImageUrl generatedImage = GeneratedImageUrl.builder()
+                    .customerId(customerId)
+                    .generatedUrl(uploadedImageUrl)
+                    .createdAt(LocalDateTime.now())
+                    .inputText(cakeDescription)
+                    .build();
 
-        generatedImageUrlRepository.save(generatedImage);
+            generatedImageUrlRepository.save(generatedImage);
 
-        return generatedImage;
-    }
+            return generatedImage;
+        }
 
     public List<GeneratedImageUrlDto> getGeneratedImagesByCustomerId(Long customerId) {
         List<GeneratedImageUrl> imageList = generatedImageUrlRepository.findAllByCustomerId(customerId);
@@ -140,26 +173,6 @@ public class CakeDesignService {
                 .toList();
     }
 
-//    // 속도 체크 메소드
-//    public void testExecutionTimeWithAverage() throws IOException, InterruptedException {
-//        int iterations = 10;
-//        long totalTime = 0;
-//
-//        for (int i = 0; i < iterations; i++) {
-//            long startTime = System.nanoTime();
-//
-//            // 실행할 코드 (예: API 호출)
-//            createAndSaveGeneratedImage(1L,"말티즈 케이크");
-//
-//            long endTime = System.nanoTime();
-//            long duration = (endTime - startTime) / 1_000_000; // 밀리초로 변환
-//            totalTime += duration;
-//            System.out.println("Iteration " + (i + 1) + " 실행 시간: " + duration + "ms");
-//        }
-//
-//        long averageTime = totalTime / iterations;
-//        System.out.println("평균 실행 시간: " + averageTime + "ms");
-//    }
 
 
 

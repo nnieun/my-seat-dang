@@ -35,30 +35,16 @@ import java.util.concurrent.ExecutionException;
 @RequiredArgsConstructor
 public class CakeDesignController {
     private final CakeDesignService cakeDesignService;
-    private final CustomerService customerService;
     private final GeneratedImageUrlRepository generatedImageUrlRepository;
     private final AuthService authService;
 
     @PostMapping("/ai/generate")
     @ResponseBody
-    public ResponseEntity<?> generateImage(@RequestParam("cakeDescription") String cakeDescription) throws IOException, InterruptedException, ExecutionException {
+    public ResponseEntity<?> generateImage(@RequestParam("cakeDescription") String cakeDescription) throws IOException, InterruptedException {
         Long customerId = authService.getAuthenticatedMember().getMemberId();
-        Customer customer = customerService.findById(customerId);
-        if (customer.getImageGenLeft() <= 0) {
-            ErrorResponseDto errorResponse = new ErrorResponseDto("생성 가능한 이미지 횟수가 부족합니다. ", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        }
-        // AI 이미지 생성 및 생성된 이미지 NCP에 저장
-        GeneratedImageUrl generatedImage = cakeDesignService.createAndSaveGeneratedImage(customerId, cakeDescription);
-        // 이미지 생성 가능 횟수 차감
-        customerService.decrementImageGenLeft(customer);
-        // 응답 데이터 생성
-        GeneratedImageResponseDto responseDto = new GeneratedImageResponseDto(
-                generatedImage.getGeneratedUrl(),
-                generatedImage.getInputText(),
-                generatedImage.getCreatedAt()
-        );
-        return ResponseEntity.ok(responseDto);
+        GeneratedImageResponseDto response = cakeDesignService.generateCakeImage(customerId,cakeDescription);
+
+        return ResponseEntity.ok(response);
     }
 
 
