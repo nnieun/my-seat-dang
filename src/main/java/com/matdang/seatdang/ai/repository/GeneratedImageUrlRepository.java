@@ -6,8 +6,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface GeneratedImageUrlRepository extends JpaRepository<GeneratedImageUrl, Long> {
     List<GeneratedImageUrl> findAllByCustomerId(Long customerId);
     Page<GeneratedImageUrl> findPageByCustomerId(Long customerId, Pageable pageable);
+
+//    boolean existsByCustomerIdAndInputText(Long customerId, String cakeDescription);
+
+//    Optional<GeneratedImageUrl> findByCustomerIdAndInputText(Long customerId, String cakeDescription);
 }
