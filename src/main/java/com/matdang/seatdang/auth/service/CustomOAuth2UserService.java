@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.UUID;
 
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
@@ -110,7 +111,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         Customer newCustomer = Customer.builder()
                 .memberName(customOAuth2User.getName()) // name (네이버 OAuth)에서 받음
                 .customerNickName(customOAuth2User.getNickname()) // nickname (네이버 OAuth)에서 받음
-                .memberPassword(bCryptPasswordEncoder.encode("oauth"))// oauth전용 비밀번호 설정 (로그인할땐 막음)
+                .memberPassword(bCryptPasswordEncoder.encode(UUID.randomUUID().toString()))// oauth전용 비밀번호 설정 (로그인할땐 막음)
                 .memberPhone(customOAuth2User.getMobile()) // memberPhone (네이버 OAuth)에서 받음
                 .memberEmail(customOAuth2User.getEmail()) // email (네이버 OAuth)에서 받음
                 .memberStatus(MemberStatus.APPROVED) // 항상 승인
