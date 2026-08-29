@@ -2,13 +2,9 @@ package com.matdang.seatdang.common.config;
 
 import com.matdang.seatdang.auth.dto.CustomOAuth2User;
 import com.matdang.seatdang.auth.service.CustomOAuth2UserService;
-import com.theokanning.openai.service.OpenAiService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.config.Customizer;
@@ -17,7 +13,6 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.savedrequest.SavedRequest;
@@ -25,34 +20,25 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 
+/**
+ * 보안 필터체인 설정만 담당한다.
+ *
+ * 이전에는 이 클래스가 BCryptPasswordEncoder와 OpenAiService 빈까지 함께 정의했다.
+ * CustomOAuth2UserService가 생성자에서 BCryptPasswordEncoder를 요구했기 때문에
+ * SecurityConfig <-> CustomOAuth2UserService 사이에 순환 참조가 생겨 기동에 실패했고,
+ * 당시에는 @Lazy로 고리를 끊었다.
+ * 빈 정의를 PasswordEncoderConfig / OpenAiConfig 로 분리하면서 @Lazy 없이 생성자 주입으로 바꿨다.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final CustomOAuth2UserService customOAuth2UserService;
 
-    // 순환 참조 때문에 Lazy 걸음 (CustomOAuth2UserService)
-    @Lazy
-    @Autowired
-    private CustomOAuth2UserService customOAuth2UserService;
-
-
-    @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder() {
-        return new BCryptPasswordEncoder();
+    public SecurityConfig(CustomOAuth2UserService customOAuth2UserService) {
+        this.customOAuth2UserService = customOAuth2UserService;
     }
-
-
-    @Value("${openai.api.key}")
-    private String apiKey;
-
-
-    @Bean
-    public OpenAiService getOpenAiService() {
-        return new OpenAiService(apiKey, Duration.ofSeconds(30));
-    }
-
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
